@@ -1,0 +1,16 @@
+# secrets / media / build output
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.m4a
+renders/
+.hyperframes/
+node_modules/
+__pycache__/
+*.pyc
+.env
+*.env
+*api*key*
+Api Folder/
+tmp/
