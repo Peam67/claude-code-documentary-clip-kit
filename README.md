@@ -38,7 +38,7 @@
 
 ### 2) เอารีโปนี้มาไว้ในเครื่อง
 แบบง่าย: กดปุ่มเขียว **Code → Download ZIP** แล้วแตกไฟล์
-หรือใช้ git: `git clone <ลิงก์ของรีโปนี้>`
+หรือใช้ git: `git clone https://github.com/Peam67/claude-code-documentary-clip-kit`
 
 ### 3) รันสคริปต์ติดตั้ง
 เปิด **PowerShell** (ไม่ต้อง Run as administrator) ไปที่โฟลเดอร์ที่แตกไว้ แล้ววางคำสั่งนี้:
