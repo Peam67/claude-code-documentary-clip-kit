@@ -12,16 +12,31 @@ rendering a HyperFrames project live in the HyperFrames skills (`/hyperframes`, 
 
 The motion numbers (frames, sizes, easings, transitions) are in `references/motion-library.md`. Read it before building.
 
-## 0. Before you start
+## 0. Before you start: look at the machine, then ask (do this BEFORE downloading anything)
 
-- Run `npx hyperframes doctor`. Missing pieces -> the user runs `setup/SETUP_clip_maker.ps1` (see the repo README).
-- Keys are environment variables: `PIXABAY_API_KEY`, `ELEVENLABS_API_KEY`. **Never print a key**, never write one into a file
-  inside the project. If the user keeps keys in text files, read them in code and only report "key works / does not work".
-- Keep the project path **short** (e.g. `D:\clips\topic`). A very long working directory breaks the npm shims on Windows.
-- A render writes ~1-2 GB of temp frames. If the system drive is low on space, set `TEMP` and `TMP` to a roomy drive
-  before `hyperframes render`.
-- You cannot hear audio. Say so in the delivery note and report what you *measured* (loudness, levels, whisper round-trip)
-  separately from what only a human can judge (voice taste, pronunciation of loanwords).
+1. **Run the preflight** (it changes nothing):
+   `powershell -ExecutionPolicy Bypass -File <this skill>/tools/preflight.ps1 -Voice api -ClipSeconds <expected length>`
+   (add `-Json` if you want to parse it). It reports what is already installed, free space on the install drive and on the
+   TEMP drive, RAM / pagefile headroom, the GPU and its VRAM, how many GB would still have to be downloaded, and OK / WARN / BLOCK.
+   Show the user the table in plain words. Never download anything while the verdict is BLOCK.
+2. **Ask which voice option** (use the AskUserQuestion tool, one question, recommend by the preflight numbers) and re-run the
+   preflight with that `-Voice` so the user sees the real GB:
+   - `api` - ElevenLabs through the API. 0 GB. Needs the user's own key. Free accounts: premade voices + `eleven_v3` only.
+   - `omnivoice` - free, local, ~10.5 GB on disk. Measured on an RTX 5060 Ti 8 GB: ~2 GB VRAM, generates ~2x faster than real time
+     (RTF 0.53; its docs state a 6 GB floor, we did not need it). **The model is CC-BY-NC: non-commercial only.** Best free local choice.
+   - `local` (VoxCPM2) - free, local, ~12.6 GB on disk, Apache-2.0, 48 kHz, voice made from a plain-text description. Measured on the same
+     card: ~5.5 GB VRAM and ~3.6x *slower* than real time (RTF 3.6, ~7x slower than OmniVoice). Same Thai accuracy in our test.
+   - `none` - the user brings their own audio.
+   Recommend `api` when there is no NVIDIA GPU, VRAM < 6 GB, or the install drive is tight; otherwise offer the free local engines.
+3. **Install** with `setup/SETUP_clip_maker.ps1 -Voice <choice>` (it runs the same preflight and stops on BLOCK). It only installs what is missing.
+4. **Space while rendering:** a 1080p30 render writes ~0.02 GB of temporary frames per second of video (measured: 1.03 GB for
+   a 50 s clip). Keep at least `max(5, 0.04 x seconds + 2)` GB free on the TEMP drive; if it is short, set `TEMP` and `TMP` to a
+   roomier drive before `hyperframes render` (a render failed at 1.02 GB free while 1.03 GB were needed).
+5. Keys are environment variables: `PIXABAY_API_KEY`, `ELEVENLABS_API_KEY`. **Never print a key**, never write one into a file
+   inside the project. If the user keeps keys in text files, read them in code and only report "key works / does not work".
+6. Keep the project path **short** (e.g. `D:/clips/topic`). A very long working directory breaks the npm shims on Windows.
+7. You cannot hear audio. Say so in the delivery note and report what you *measured* (loudness, levels, whisper round-trip)
+   separately from what only a human can judge (voice taste, pronunciation of loanwords).
 
 ## 1. Workflow
 
@@ -32,10 +47,12 @@ The motion numbers (frames, sizes, easings, transitions) are in `references/moti
    second, which HyperFrames needs - otherwise it warns about "sparse keyframes" and seeks freeze).
 3. **Write the narration** - one short line per beat, in the user's language, in a single file. Spell numbers as words and
    write English terms the way you want them spoken. Keep each line <= ~15 words.
-4. **Voice-over.** Free ElevenLabs accounts: **premade voices only**, model **`eleven_v3`** (older models speak Thai with a
-   foreign accent). Library voices need a paid plan through the API. `tools/eleven_tts_lines.py` generates N takes per line
-   and keeps the one whisper hears most accurately. Accounts used behind a VPN / created in bulk get blocked
-   (`detected_unusual_activity`) and cannot be restored. Free alternative on an 8 GB+ NVIDIA GPU: VoxCPM2 (see README).
+4. **Voice-over** (the option the user chose in step 0).
+   - API: free ElevenLabs accounts get **premade voices only**, model **`eleven_v3`** (older models speak Thai with a foreign accent);
+     library voices need a paid plan through the API. `tools/eleven_tts_lines.py` generates N takes per line and keeps the one whisper
+     hears most accurately. Accounts used behind a VPN / created in bulk get blocked (`detected_unusual_activity`) and cannot be restored.
+   - Local: `<env>\Scripts\python.exe tools/local_tts_lines.py script.txt out_dir --engine omnivoice|voxcpm2` (voice design for line 1,
+     every other line clones it, N takes per line, best take chosen by whisper). Env paths are printed by the setup script.
    After generating, compare each line's real duration with the slot the picture plan gives it; if a line runs long,
    **stretch the picture** for that stretch (hold/zoom) instead of speeding the voice up by more than ~5%.
 5. **Plan shots.** For every noun/verb that matters, pick a picture that literally shows it (say "eye" -> an eye).
