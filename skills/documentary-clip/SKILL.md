@@ -43,7 +43,8 @@ The motion numbers (frames, sizes, easings, transitions) are in `references/moti
 1. **Inspect the raw clip.** `ffprobe`, a 1 fps contact sheet, and a transcript (`whisper-cli -l th -m ggml-medium.bin`).
    Thai comes back as long chunks without word times: split with `pythainlp` and spread each chunk's time over the words
    by syllable weight (English words ~0.55 x letters + 1).
-2. **Tighten.** `tools/tighten_silence.py in.mp4 out.mp4` removes silent gaps (it also re-encodes with a keyframe every
+2. **Tighten.** If the raw take has mistakes or repeated lines, cut it with the `talking-head-cut` skill first (best take per
+   line, false starts out, pauses measured from a hand edit). For a clean take, `tools/tighten_silence.py in.mp4 out.mp4` removes silent gaps (it also re-encodes with a keyframe every
    second, which HyperFrames needs - otherwise it warns about "sparse keyframes" and seeks freeze).
 3. **Write the narration** - one short line per beat, in the user's language, in a single file. Spell numbers as words and
    write English terms the way you want them spoken. Keep each line <= ~15 words.

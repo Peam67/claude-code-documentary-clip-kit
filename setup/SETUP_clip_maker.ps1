@@ -135,13 +135,15 @@ if (-not $SkipSkills) {
 }
 
 if (-not $SkipSkills) {
-    Step 'documentary-clip skill (from this repo)' {
-        $src = Join-Path $PSScriptRoot '..\skills\documentary-clip'
-        if (-not (Test-Path (Join-Path $src 'SKILL.md'))) { throw "skill folder not found next to this script: $src" }
+    Step 'skills from this repo (documentary-clip, talking-head-cut)' {
+        $all = Get-ChildItem (Join-Path $PSScriptRoot '..\skills') -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'SKILL.md') }
+        if (-not $all) { throw "no skill folders found next to this script" }
         New-Item -ItemType Directory -Force -Path $SkillsDir | Out-Null
-        $dst = Join-Path $SkillsDir 'documentary-clip'
-        if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }
-        Copy-Item -Recurse -Force $src $dst
+        foreach ($src in $all) {
+            $dst = Join-Path $SkillsDir $src.Name
+            if (Test-Path $dst) { Remove-Item -Recurse -Force $dst }
+            Copy-Item -Recurse -Force $src.FullName $dst
+        }
     }
 }
 
