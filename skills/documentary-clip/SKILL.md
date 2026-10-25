@@ -1,6 +1,6 @@
 ---
 name: documentary-clip
-description: Make a fast-cut "documentary-style" explainer clip - talking-head hook, then a deep narrator voice-over over picture-per-word b-roll, word-by-word Thai captions, big hero words, counters, strobe recap, end card and CTA - with HyperFrames, free stock footage, and an ElevenLabs (or local VoxCPM2) Thai voice. Use when the user asks for a documentary-style / "AI edited" / fast-cut clip from their own talking-head footage plus a script, or says ทำคลิปสไตล์สารคดี, ทำคลิปแบบนี้, ตัดต่อให้เหมือนต้นฉบับ.
+description: Make a fast-cut "documentary-style" explainer clip - talking-head hook, then a deep narrator voice-over over picture-per-word b-roll, word-by-word Thai captions, big hero words, counters, strobe recap, end card and CTA - with HyperFrames, free stock footage, and an ElevenLabs (or VoiceStudio) Thai voice. Use when the user asks for a documentary-style / "AI edited" / fast-cut clip from their own talking-head footage plus a script, or says ทำคลิปสไตล์สารคดี, ทำคลิปแบบนี้, ตัดต่อให้เหมือนต้นฉบับ.
 ---
 
 # Documentary-style clip (HyperFrames)
@@ -22,12 +22,12 @@ The motion numbers (frames, sizes, easings, transitions) are in `references/moti
 2. **Ask which voice option** (use the AskUserQuestion tool, one question, recommend by the preflight numbers) and re-run the
    preflight with that `-Voice` so the user sees the real GB:
    - `api` - ElevenLabs through the API. 0 GB. Needs the user's own key. Free accounts: premade voices + `eleven_v3` only.
-   - `omnivoice` - free, local, ~10.5 GB on disk. Measured on an RTX 5060 Ti 8 GB: ~2 GB VRAM, generates ~2x faster than real time
-     (RTF 0.53; its docs state a 6 GB floor, we did not need it). **The model is CC-BY-NC: non-commercial only.** Best free local choice.
-   - `local` (VoxCPM2) - free, local, ~12.6 GB on disk, Apache-2.0, 48 kHz, voice made from a plain-text description. Measured on the same
-     card: ~5.5 GB VRAM and ~3.6x *slower* than real time (RTF 3.6, ~7x slower than OmniVoice). Same Thai accuracy in our test.
+   - `voicestudio` - free app (AGPL-3.0) that makes voices on the user's PC; ~10 GB (figure from its own install guide, NOT measured here).
+     Its default engine OmniVoice has a **CC-BY-NC model: non-commercial only**. Measured earlier by calling OmniVoice directly (not through the app)
+     on an RTX 5060 Ti 8 GB: ~2 GB VRAM, ~2x faster than real time; its optional VoxCPM2 engine: ~5.5 GB VRAM, ~3.6x slower than real time.
+     The setup script downloads the official installer, checks its SHA-256 and starts it; this path is untested by the kit's author.
    - `none` - the user brings their own audio.
-   Recommend `api` when there is no NVIDIA GPU, VRAM < 6 GB, or the install drive is tight; otherwise offer the free local engines.
+   Recommend `api` unless the user wants a free local voice; recommend against `voicestudio` when the install drive is tight.
 3. **Install** with `setup/SETUP_clip_maker.ps1 -Voice <choice>` (it runs the same preflight and stops on BLOCK). It only installs what is missing.
 4. **Space while rendering:** a 1080p30 render writes ~0.02 GB of temporary frames per second of video (measured: 1.03 GB for
    a 50 s clip). Keep at least `max(5, 0.04 x seconds + 2)` GB free on the TEMP drive; if it is short, set `TEMP` and `TMP` to a
@@ -51,8 +51,10 @@ The motion numbers (frames, sizes, easings, transitions) are in `references/moti
    - API: free ElevenLabs accounts get **premade voices only**, model **`eleven_v3`** (older models speak Thai with a foreign accent);
      library voices need a paid plan through the API. `tools/eleven_tts_lines.py` generates N takes per line and keeps the one whisper
      hears most accurately. Accounts used behind a VPN / created in bulk get blocked (`detected_unusual_activity`) and cannot be restored.
-   - Local: `<env>\Scripts\python.exe tools/local_tts_lines.py script.txt out_dir --engine omnivoice|voxcpm2` (voice design for line 1,
-     every other line clones it, N takes per line, best take chosen by whisper). Env paths are printed by the setup script.
+   - VoiceStudio: once the app is running and its MCP config (`.mcp.json` from its Integrations page, URL `http://localhost:3900/mcp/`) is
+     loaded in Claude Code, call the `generate_speech` tool one line at a time (with `OMNIVOICE_MCP_OUTPUT_MODE=files` the audio is written to
+     files instead of flooding the conversation). Make 2-3 takes per line and keep the one whisper hears most accurately. Not tested by the kit's
+     author: if a call fails, say so plainly and offer ElevenLabs.
    After generating, compare each line's real duration with the slot the picture plan gives it; if a line runs long,
    **stretch the picture** for that stretch (hold/zoom) instead of speeding the voice up by more than ~5%.
 5. **Plan shots.** For every noun/verb that matters, pick a picture that literally shows it (say "eye" -> an eye).

@@ -10,13 +10,11 @@
       -HyperframesVersion <v>   HyperFrames CLI version to pin                            (default: 0.8.186, the one this kit was made with)
       -SkipSkills               do not touch ~\.claude\skills (skips BOTH the HyperFrames skills and the documentary-clip skill)
       -SkillsDir <path>         where Claude Code skills live                             (default: %USERPROFILE%\.claude\skills)
-      -Voice <choice>           voice-over: ask (default, menu) | api | local | omnivoice | both | none
-                                  api       ElevenLabs through the API: nothing to download, needs your key
-                                  local     VoxCPM2 on your NVIDIA GPU  (~12.6 GB disk; ~5.5 GB VRAM; ~7x slower than OmniVoice)
-                                  omnivoice OmniVoice on your NVIDIA GPU (~10.5 GB disk; ~2 GB VRAM; faster than real time; model is non-commercial)
-                                  both      both local engines
-                                  none      no voice tools
-      -WithLocalVoice           old name for -Voice local
+      -Voice <choice>           voice-over: ask (default, menu) | api | voicestudio | none
+                                  api         ElevenLabs through the API: nothing to download, needs your key   (default)
+                                  voicestudio VoiceStudio (free, open-source app, voices made on your own PC, ~10 GB per its docs).
+                                              This script downloads its installer, checks the SHA-256 and starts it. NOT tested by the kit's author.
+                                  none        no voice tools
       -ClipSeconds <n>          clip length used for the render-space estimate           (default: 60)
       -PreflightOnly            only look at this machine and print the space/GPU report, change nothing
       -Force                    continue even when the preflight says BLOCK
@@ -32,8 +30,7 @@ param(
     [string]$HyperframesVersion = '0.8.186',
     [string]$SkillsDir = "$env:USERPROFILE\.claude\skills",
     [switch]$SkipSkills,
-    [ValidateSet('ask', 'api', 'local', 'omnivoice', 'both', 'none')][string]$Voice = 'ask',
-    [switch]$WithLocalVoice,
+    [ValidateSet('ask', 'api', 'voicestudio', 'none')][string]$Voice = 'ask',
     [int]$ClipSeconds = 60,
     [switch]$PreflightOnly,
     [switch]$Force,
@@ -76,7 +73,6 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
 
 # ---------------------------------------------------------------- look at this machine first, then choose the voice option
 $preflight = Join-Path $PSScriptRoot '..\skills\documentary-clip\tools\preflight.ps1'
-if ($WithLocalVoice -and $Voice -eq 'ask') { $Voice = 'local' }
 $interactive = [Environment]::UserInteractive -and -not [Console]::IsInputRedirected
 if ($Voice -eq 'ask') {
     & $preflight -Voice none -ToolsDir $ToolsDir -ClipSeconds $ClipSeconds
@@ -84,15 +80,13 @@ if ($Voice -eq 'ask') {
         Write-Host ''
         Write-Host 'Voice-over: how do you want to make the narrator voice?' -ForegroundColor Cyan
         Write-Host '  [1] API only (ElevenLabs)      0 GB to download. Needs your own free key; best quality, least hassle.   (default)'
-        Write-Host '  [2] Local VoxCPM2  (free)      ~12.6 GB. NVIDIA GPU with 6 GB+ VRAM (uses ~5.5 GB). ~7x slower than [3]; voice from a text description, 48 kHz.'
-        Write-Host '  [3] Local OmniVoice (free)     ~10.5 GB. Uses ~2 GB VRAM, faster than real time. Model is CC-BY-NC (non-commercial only). Best free local choice.'
-        Write-Host '  [4] Both local engines         ~23 GB.'
-        Write-Host '  [5] None                       I bring my own audio.'
-        $c = Read-Host 'Choose 1-5 [1]'
-        $Voice = switch ($c) { '2' { 'local' } '3' { 'omnivoice' } '4' { 'both' } '5' { 'none' } default { 'api' } }
+        Write-Host '  [2] VoiceStudio (free)         ~10 GB (figure from its docs). Voices made on your own PC; its default model is non-commercial.'
+        Write-Host '  [3] None                       I bring my own audio.'
+        $c = Read-Host 'Choose 1-3 [1]'
+        $Voice = switch ($c) { '2' { 'voicestudio' } '3' { 'none' } default { 'api' } }
     } else {
         $Voice = 'api'
-        if (-not $PreflightOnly) { Write-Host '(not interactive: using -Voice api. Pass -Voice local|omnivoice|both|none to change.)' }
+        if (-not $PreflightOnly) { Write-Host '(not interactive: using -Voice api. Pass -Voice voicestudio|none to change.)' }
     }
 }
 Write-Host ''
@@ -175,41 +169,24 @@ Step 'Thai fonts (Trirong, Kanit)' {
     }
 }
 
-# ---------------------------------------------------------------- optional: free local Thai voice
-if ($Voice -in 'local', 'omnivoice', 'both') {
-    $tts = Join-Path $ToolsDir 'tts'
-    Step 'Local voice base (uv, Python 3.11, PyTorch 2.8 + CUDA 12.8 pin)' {
-        if (-not (Get-Command nvidia-smi -ErrorAction SilentlyContinue)) { throw 'No NVIDIA GPU / driver found (nvidia-smi missing). Use -Voice api instead.' }
-        if (-not (Works uv)) { WingetInstall 'astral-sh.uv' }
-        New-Item -ItemType Directory -Force -Path $tts | Out-Null
-        # keep uv's cache and the environments on ONE drive so wheels are hard-linked instead of copied (saves ~8 GB)
-        $env:UV_CACHE_DIR = Join-Path $tts 'uv-cache'; $env:UV_PYTHON_INSTALL_DIR = Join-Path $tts 'python'
-        [Environment]::SetEnvironmentVariable('HF_HOME', (Join-Path $tts 'hf'), 'User'); $env:HF_HOME = Join-Path $tts 'hf'
-        uv python install 3.11
-        # torch 2.8 + CUDA 12.8 is the build that works on RTX 50-series (sm_120); keep it pinned
-        "torch==2.8.0+cu128`ntorchaudio==2.8.0+cu128" | Set-Content (Join-Path $tts 'pin.txt')
+# ---------------------------------------------------------------- optional: VoiceStudio (free voices on this PC)
+if ($Voice -eq 'voicestudio') {
+    Step 'VoiceStudio installer (download + SHA-256 check)' {
+        $rel = 'https://github.com/debpalash/VoiceStudio/releases/download/v0.5.6'
+        $exeName = 'VoiceStudio-Electron-0.5.6-win-x64.exe'
+        $dir = Join-Path $ToolsDir 'voicestudio'
+        $exe = Join-Path $dir $exeName
+        Download "$rel/SHA256SUMS.txt" (Join-Path $dir 'SHA256SUMS.txt')
+        if (-not (Test-Path $exe)) { Download "$rel/$exeName" $exe }
+        $want = ((Get-Content (Join-Path $dir 'SHA256SUMS.txt')) | Where-Object { $_ -match [regex]::Escape($exeName) } | Select-Object -First 1) -split '\s+' | Select-Object -First 1
+        $got = (Get-FileHash $exe -Algorithm SHA256).Hash
+        if (-not $want -or $want.ToLower() -ne $got.ToLower()) { Remove-Item $exe -Force; throw "SHA-256 mismatch for $exeName (expected '$want', got '$got'). Deleted the file." }
+        Write-Host "    SHA-256 matches: $got"
+        if ($interactive) { Start-Process $exe; Write-Host '    Installer started - finish it in its own window.' }
+        else { Write-Host "    Run this installer yourself: $exe" }
+        Write-Host '    Then: open VoiceStudio -> Integrations -> Claude Code, copy the .mcp.json it shows into your project folder.'
+        Write-Host '    (First voice generation downloads the ~2.3 GB model. Claude Code then talks to http://localhost:3900/mcp/.)'
     }
-    if ($Voice -in 'local', 'both') {
-        Step 'Local voice: VoxCPM2 (Apache-2.0)' {
-            $py = Join-Path $tts 'venv\Scripts\python.exe'
-            if (-not (Test-Path $py)) { uv venv --python 3.11 (Join-Path $tts 'venv') }
-            uv pip install --python $py torch==2.8.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
-            uv pip install --python $py voxcpm numpy soundfile --constraint (Join-Path $tts 'pin.txt') --extra-index-url https://download.pytorch.org/whl/cu128 --index-strategy unsafe-best-match
-            & $py -c "import torch;print('torch',torch.__version__,'cuda',torch.cuda.is_available())"
-            Write-Host '    (the 4.6 GB model weights download on first use)'
-        }
-    }
-    if ($Voice -in 'omnivoice', 'both') {
-        Step 'Local voice: OmniVoice (model is CC-BY-NC: non-commercial only)' {
-            $py = Join-Path $tts 'venv_omni\Scripts\python.exe'
-            if (-not (Test-Path $py)) { uv venv --python 3.11 (Join-Path $tts 'venv_omni') }
-            uv pip install --python $py torch==2.8.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
-            uv pip install --python $py omnivoice numpy soundfile --constraint (Join-Path $tts 'pin.txt') --extra-index-url https://download.pytorch.org/whl/cu128 --index-strategy unsafe-best-match
-            & $py -c "import torch,omnivoice;print('torch',torch.__version__,'cuda',torch.cuda.is_available())"
-            Write-Host '    (the 3.0 GB model weights download on first use)'
-        }
-    }
-    Write-Host '    Voice tool:  <env>\Scripts\python.exe <skills>\documentary-clip\tools\local_tts_lines.py script.txt out_dir --engine voxcpm2|omnivoice'
 }
 
 # ---------------------------------------------------------------- checks

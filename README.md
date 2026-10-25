@@ -27,7 +27,7 @@
 | yt-dlp, pythainlp, edge-tts | โหลดคลิปฉากหนัง/เพลง, ตัดคำไทย, เสียงสำรอง | สคริปต์ลงให้ |
 | **Pixabay API key** (ฟรี) | หาภาพ/วิดีโอสต็อก | คุณสมัครเอง (ข้างล่าง) |
 | **ElevenLabs API key** (ฟรีได้) | เสียงผู้บรรยาย | คุณสมัครเอง (ข้างล่าง) |
-| *ไม่บังคับ:* การ์ดจอ NVIDIA | เสียงผู้บรรยายฟรีในเครื่อง (OmniVoice ใช้ VRAM ~2 GB / VoxCPM2 ~5.5 GB) | เลือกตอนรันสคริปต์ติดตั้ง (`-Voice`) |
+| *ไม่บังคับ:* [VoiceStudio](https://github.com/debpalash/VoiceStudio) | เสียงผู้บรรยายฟรีที่สร้างในเครื่อง (ทางเลือกแทน ElevenLabs) | เลือกตอนรันสคริปต์ติดตั้ง (`-Voice voicestudio`) |
 
 ใช้พื้นที่เท่าไหร่ ต้องเหลือเท่าไหร่ตอนเรนเดอร์ และเลือกเสียงแบบไหน ดูหัวข้อถัดไป
 
@@ -54,12 +54,10 @@
 
 | ตัวเลือก | ใช้เพิ่ม (GB) |
 |---|---|
-| API (ElevenLabs) | 0 |
-| OmniVoice ในเครื่อง | ≈ 10.5 (โมเดล 3.0 + สภาพแวดล้อม PyTorch 7.5) |
-| VoxCPM2 ในเครื่อง | ≈ 12.6 (โมเดล 4.6 + สภาพแวดล้อม 7.9 + Python 0.07) |
-| ทั้งสองตัว | ≤ 23 (ถ้าอยู่ไดรฟ์เดียวกัน uv แชร์ไฟล์ PyTorch ให้ จึงใช้จริงน้อยกว่านี้ ยังไม่ได้วัด) |
+| ElevenLabs (API) | 0 |
+| VoiceStudio | ≈ 10 (ตัวเลขจากคู่มือติดตั้งของเขาเอง "~10 GB free disk" **ผมไม่ได้วัดเอง**) |
 
-ตอนติดตั้งควรมีที่ว่างอย่างน้อย = พื้นฐาน + ตัวเลือกเสียง + เผื่อประมาณ 2 GB (ตัวเผื่อเป็นค่าที่ผมตั้งเอง) คือ API ≈ 5.5 GB, OmniVoice ≈ 16 GB, VoxCPM2 ≈ 18 GB
+ตอนติดตั้งควรมีที่ว่างอย่างน้อย = พื้นฐาน + ตัวเลือกเสียง + เผื่อประมาณ 2 GB (ตัวเผื่อเป็นค่าที่ผมตั้งเอง) คือ ElevenLabs ≈ 5.5 GB, VoiceStudio ≈ 15.5 GB
 งานของหนึ่งคลิป (ไฟล์ภาพ/คลิปที่โหลดมา + ไฟล์ทำงาน) ใช้อีกประมาณ 0.3–0.7 GB (วัดจากคลิป 50 วินาที: 0.30 + 0.34)
 
 ## ระหว่างเรนเดอร์ต้องเหลือที่ว่างเท่าไหร่
@@ -83,35 +81,30 @@
 ของที่มีอยู่แล้ว · ที่ว่างในไดรฟ์ติดตั้งและไดรฟ์ TEMP · RAM และหน่วยความจำ + pagefile · การ์ดจอและ VRAM · จะต้องโหลดเพิ่มกี่ GB · ผ่าน (OK) / เตือน (WARN) / ไม่ควรไปต่อ (BLOCK)
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\skills\documentary-clip\tools\preflight.ps1 -Voice omnivoice -ClipSeconds 60
+powershell -ExecutionPolicy Bypass -File .\skills\documentary-clip\tools\preflight.ps1 -Voice voicestudio -ClipSeconds 60
 ```
 
-ตอนรัน `SETUP_clip_maker.ps1` มันเรียกตัวเช็คนี้ให้เอง แล้ว **ถามว่าจะทำเสียงบรรยายแบบไหน** (API / OmniVoice / VoxCPM2 / ทั้งสอง / ไม่เอา) พร้อมบอกจำนวน GB ที่ต้องโหลดของแต่ละแบบ ถ้าขึ้น BLOCK มันจะหยุดและบอกวิธีแก้ ส่วนสกิลสั่งให้ Claude Code ทำแบบเดียวกันก่อนโหลดอะไร (เช็คเครื่อง → ถามคุณเรื่องเสียง → ค่อยติดตั้ง) ใส่ `-PreflightOnly` ถ้าอยากดูรายงานเฉย ๆ
+ตอนรัน `SETUP_clip_maker.ps1` มันเรียกตัวเช็คนี้ให้เอง แล้ว **ถามว่าจะทำเสียงบรรยายแบบไหน** (ElevenLabs / VoiceStudio / ไม่เอา) พร้อมบอกจำนวน GB ที่ต้องโหลดของแต่ละแบบ ถ้าขึ้น BLOCK มันจะหยุดและบอกวิธีแก้ ส่วนสกิลสั่งให้ Claude Code ทำแบบเดียวกันก่อนโหลดอะไร (เช็คเครื่อง → ถามคุณเรื่องเสียง → ค่อยติดตั้ง) ใส่ `-PreflightOnly` ถ้าอยากดูรายงานเฉย ๆ
 
-## เสียงบรรยาย: ใช้ API หรือโหลดโมเดลมาใช้เอง
+## เสียงบรรยาย: ElevenLabs หรือ VoiceStudio
 
-วัดบน RTX 5060 Ti 8 GB ด้วยบทภาษาไทยชุดเดียวกัน (วัดเฉพาะช่วงสร้างเสียง ไม่นับเวลาโหลดโมเดล รอบละ 1 take ต่อบรรทัด):
+ชุดนี้มีให้เลือก 2 ทาง (ข้ามได้ถ้าคุณมีไฟล์เสียงพากย์ของตัวเอง)
 
-| | ElevenLabs (API) | OmniVoice (ในเครื่อง) | VoxCPM2 (ในเครื่อง) |
-|---|---|---|---|
-| ใช้ดิสก์ | 0 | ≈ 10.5 GB | ≈ 12.6 GB |
-| VRAM ตอนทำงาน | ไม่ใช้ | **2.0 GB** | 5.5 GB |
-| ความเร็ว (RTF) | ไม่ได้วัด (เรียกผ่านเน็ต) | **0.53** (เร็วกว่าเสียงจริง ~2 เท่า) | 3.6 (ช้ากว่าเสียงจริง ~3.6 เท่า) |
-| ถอดกลับด้วย whisper ตรงบท (เฉลี่ย 9 บรรทัด) | ≈ 87% | ≈ 89% | ≈ 89% |
-| ต้นแบบเสียง | เสียงสำเร็จรูปที่ให้เลือก | โคลนจากคลิป 3–10 วิ หรือบอกลักษณะ (เช่น `male, low pitch`) | โคลน หรืออธิบายเสียงเป็นข้อความอิสระ |
-| ระดับเสียงที่ได้ตอนขอ "เสียงผู้ชายทุ้ม" | เสียง premade | ≈ 150 Hz (ไม่ทุ้มมาก) | ≈ 119 Hz (ทุ้มกว่า) |
-| ความละเอียดเสียง | 44.1 kHz | 24 kHz | 48 kHz |
-| ไลเซนส์ | ตามเงื่อนไข ElevenLabs | **โมเดลเป็น CC-BY-NC (ห้ามใช้เชิงพาณิชย์)** | Apache-2.0 |
-| ต้องมี | คีย์ + เน็ต (แพ็กฟรีใช้ได้แค่ premade + `eleven_v3`) | การ์ด NVIDIA | การ์ด NVIDIA VRAM 6 GB+ |
+| | ElevenLabs (API) | VoiceStudio (ในเครื่อง) |
+|---|---|---|
+| ใช้ดิสก์ | 0 | ≈ 10 GB (ตามเอกสารเขา ไม่ได้วัดเอง) |
+| ต้องมี | คีย์ + เน็ต (แพ็กฟรีใช้ได้แค่ premade + `eleven_v3`) | โหลดแอป ~205 MB แล้วมันโหลดโมเดลต่อตอนใช้ครั้งแรก (~2.3 GB) |
+| เสียง | เสียงสำเร็จรูปที่ให้เลือก | โคลนจากคลิป 3–10 วิ หรือบอกลักษณะเสียงเป็นข้อความ |
+| ไลเซนส์ | ตามเงื่อนไข ElevenLabs | แอปเป็น AGPL-3.0 แต่โมเดลเริ่มต้น (OmniVoice) เป็น **CC-BY-NC ห้ามใช้เชิงพาณิชย์** |
+| สถานะในชุดนี้ | ใช้จริง ทดสอบแล้ว | **สคริปต์โหลด+ตรวจ SHA-256 ให้ แต่ผมยังไม่ได้ติดตั้งและลองเอง** |
 
-อ่านผลยังไง
-- **ความแม่นยำเท่ากันหมด** ในการทดสอบนี้ ส่วนที่ตก (60–70%) คือบรรทัดที่มีคำอังกฤษ (animation, transition, motion designer) ทุกตัวออกเสียงเป็นอังกฤษ และ whisper ถอดกลับเป็นตัวอังกฤษ จึงถูกหักคะแนน นี่เป็นข้อจำกัดของวิธีวัด ไม่ใช่ว่าเสียงผิดเสมอไป
-- **ถ้ามีการ์ด NVIDIA และทำเล่น/ไม่เชิงพาณิชย์:** OmniVoice เบาและเร็วสุด (ที่ผมวัด ใช้ VRAM แค่ ~2 GB ทั้งที่เอกสารของเขาบอกว่าควรมี 6 GB)
-- **ถ้าจะใช้เชิงพาณิชย์ หรืออยากได้เสียงทุ้มตามที่อธิบาย/เสียง 48 kHz:** VoxCPM2 (ช้ากว่าราว 7 เท่า)
-- **ถ้าไม่มีการ์ดจอ หรืออยากได้ที่ง่ายที่สุด:** API
-- ตัวเลขนี้เป็นของการ์ดตัวเดียว ไม่ใช่มาตรฐาน และเสียงที่ได้ยังต้องให้คนฟังตัดสินเอง
+ที่ผมวัดมาก่อนหน้านี้ (ไม่ได้ผ่านแอป VoiceStudio เรียกโมเดลตรง ๆ บน RTX 5060 Ti 8 GB ด้วยบทไทยชุดเดียวกัน): **OmniVoice** ซึ่งเป็นเอนจินเริ่มต้นของ VoiceStudio ใช้ VRAM ~2 GB และสร้างเร็วกว่าเสียงจริง ~2 เท่า (RTF 0.53) ส่วน **VoxCPM2** (เอนจินเสริมใน VoiceStudio) ใช้ ~5.5 GB และช้ากว่าเสียงจริง ~3.6 เท่า ความแม่นยำถอดกลับด้วย whisper ใกล้กัน (~89%) ถ้าเลือกเอนจินใน VoiceStudio ใช้ตัวเลขนี้ประกอบได้ แต่ผ่านแอปอาจต่างไป
 
-เครื่องมือสร้างเสียงในเครื่องคือ `skills/documentary-clip/tools/local_tts_lines.py` (ใช้ได้ทั้งสองเอนจิน สร้างบรรทัดละหลายรอบแล้วเลือกรอบที่ถอดกลับถูกที่สุด)
+**วิธีใช้ VoiceStudio กับ Claude Code:** เปิดแอป → เมนู Integrations → Claude Code → เอา `.mcp.json` ที่แสดงไปไว้ในโฟลเดอร์งาน แล้ว Claude Code จะเรียกเครื่องมือ `generate_speech` ผ่าน `http://localhost:3900/mcp/` ได้ (ตามเอกสารของเขา) ถ้าตั้ง `OMNIVOICE_MCP_OUTPUT_MODE=files` กับ `OMNIVOICE_MCP_BASE_PATH` เสียงจะถูกเก็บเป็นไฟล์ในโฟลเดอร์ที่กำหนด
+
+- **ง่ายและคุณภาพดีสุด:** ElevenLabs
+- **ไม่อยากมีค่าใช้จ่าย/ไม่อยากส่งข้อความออกเน็ต และทำเล่น ไม่เชิงพาณิชย์:** VoiceStudio
+- เสียงที่ได้ยังต้องให้คนฟังตัดสินเอง (Claude Code ฟังเสียงไม่ได้)
 
 ## สิ่งที่คุณต้องทำเอง (ทีละขั้น)
 
@@ -132,7 +125,7 @@ powershell -ExecutionPolicy Bypass -File .\setup\SETUP_clip_maker.ps1
 - ลงเฉพาะของที่ยังไม่มี รันซ้ำได้ ไม่ทับของเดิม ไม่แตะเวอร์ชัน Node/Python ที่คุณมีอยู่
 - มีหน้าต่าง winget ถามยืนยันได้ ให้กดตกลง
 - ตอนท้ายจะมีตารางสรุปว่าอะไรผ่าน/ไม่ผ่าน และเช็คคีย์ให้ (ถ้าตั้งคีย์แล้ว)
-- **มันจะดูเครื่องคุณก่อน แล้วถามว่าจะทำเสียงแบบไหน** (API / OmniVoice / VoxCPM2 / ทั้งสอง / ไม่เอา) ถ้าอยากข้ามคำถาม ใส่ `-Voice api`, `-Voice omnivoice`, `-Voice local` (VoxCPM2), `-Voice both` หรือ `-Voice none`
+- **มันจะดูเครื่องคุณก่อน แล้วถามว่าจะทำเสียงแบบไหน** (ElevenLabs / VoiceStudio / ไม่เอา) ถ้าอยากข้ามคำถาม ใส่ `-Voice api`, `-Voice voicestudio` หรือ `-Voice none`
 - อยากดูแค่รายงานเครื่อง ไม่ติดตั้งอะไร: ต่อท้ายด้วย `-PreflightOnly`
 - ถ้า C: เหลือน้อย ให้ย้ายที่ติดตั้งไปไดรฟ์อื่น: `-ToolsDir D:\tools`
 - ดูตัวเลือกอื่นได้ที่หัวไฟล์สคริปต์
@@ -152,7 +145,7 @@ powershell -ExecutionPolicy Bypass -File .\setup\SETUP_clip_maker.ps1
 
 > ❗ **ปิดแล้วเปิด PowerShell/Claude Code ใหม่** หลัง `setx` ตัวแปรถึงจะมีผล และ **อย่าเอาคีย์ไปวางในแชทหรือไฟล์ที่จะแชร์**
 
-ไม่อยากใช้ ElevenLabs? เลือกเสียงฟรีในเครื่องตอนรันสคริปต์ (ข้อ 3) หรือเสียง Edge TTS (`th-TH-NiwatNeural`) ที่ติดมากับสคริปต์ คุณภาพต่ำกว่า แต่ใช้ได้ทันที
+ไม่อยากใช้ ElevenLabs? เลือก VoiceStudio ตอนรันสคริปต์ (ข้อ 3) หรือเสียง Edge TTS (`th-TH-NiwatNeural`) ที่ติดมากับสคริปต์ คุณภาพต่ำกว่า แต่ใช้ได้ทันที
 
 ### 5) สกิล
 สคริปต์ในข้อ 3 ติดตั้งให้แล้ว 2 ชุด: สกิลของ HyperFrames (`hyperframes`, `media-use`, …) และสกิลของรีโปนี้ `documentary-clip`
@@ -167,7 +160,7 @@ powershell -ExecutionPolicy Bypass -File .\setup\SETUP_clip_maker.ps1
 `skills/documentary-clip/SKILL.md` เป็นคู่มือที่ Claude Code อ่านก่อนลงมือ: ลำดับงาน 10 ขั้น ตั้งแต่ตัดช่วงเงียบ เขียนบท ทำเสียง วางแผนภาพ หาภาพ ประกอบ ผสมเพลง ตรวจ จนถึงเรนเดอร์
 พร้อมตารางกับดักที่เจอจริง เช่น ท่า invert เรนเดอร์ออกเป็นวงรีขาว, ภาพ HDR ทำให้สีเพี้ยนทั้งคลิป, ดิสก์เต็มตอนเรนเดอร์, Pixabay ตอบ 403
 และ `references/motion-library.md` ที่สรุปท่า motion เป็นตัวเลขเฟรม (ซับ คำใหญ่ ตัวนับ ท่าเปลี่ยนภาพ คอลลาจ สโตรบ CTA) จากการวัดคลิปตัวอย่างทีละเฟรม
-มีเครื่องมือ 4 ตัว: `preflight.ps1` (เช็คเครื่อง/พื้นที่/การ์ดจอก่อนโหลด), `tighten_silence.py` (ตัดช่วงเงียบ), `eleven_tts_lines.py` (เสียง ElevenLabs ทีละบรรทัด) และ `local_tts_lines.py` (เสียงฟรีในเครื่องด้วย OmniVoice/VoxCPM2) สองตัวหลังสร้างหลายรอบแล้วเลือกรอบที่ถอดกลับถูกที่สุด
+มีเครื่องมือ 3 ตัว: `preflight.ps1` (เช็คเครื่อง/พื้นที่/การ์ดจอก่อนโหลด), `tighten_silence.py` (ตัดช่วงเงียบ) และ `eleven_tts_lines.py` (เสียง ElevenLabs ทีละบรรทัด สร้างหลายรอบแล้วเลือกรอบที่ถอดกลับถูกที่สุด)
 
 ## ปัญหาที่เจอบ่อย
 
@@ -178,7 +171,7 @@ powershell -ExecutionPolicy Bypass -File .\setup\SETUP_clip_maker.ps1
 | ElevenLabs `detected_unusual_activity` | บัญชีถูกบล็อก (มักเพราะ VPN/สมัครหลายบัญชี) แก้ไม่ได้ ต้องใช้บัญชีใหม่ที่ไม่ผ่าน VPN หรืออัปเกรดแพ็ก |
 | ElevenLabs `paid_plan_required` / `voice_not_found` | ใช้เสียงจาก Library บนแพ็กฟรี ให้เปลี่ยนเป็นเสียง premade |
 | Pixabay ตอบ 403 | ไม่ได้ส่ง `User-Agent` (Claude Code ทำให้เอง) |
-| โหลดโมเดลเสียงในเครื่องแล้ว `paging file is too small` หรือ whisper ล้มเงียบ ๆ (ถอดเสียงได้ค่าว่าง) | "หน่วยความจำ + pagefile" ว่างน้อย (ตัวเช็คเครื่องจะเตือน) ปิดโปรแกรมหนัก ๆ แล้วลองใหม่ ตัว `local_tts_lines.py` โหลดน้ำหนัก VoxCPM2 ตรงเข้าการ์ดจอเพื่อเลี่ยงปัญหานี้อยู่แล้ว |
+| โหลดโมเดลเสียงในเครื่อง (VoiceStudio) แล้ว `paging file is too small` หรือ whisper ล้มเงียบ ๆ (ถอดเสียงได้ค่าว่าง) | "หน่วยความจำ + pagefile" ว่างน้อย (ตัวเช็คเครื่องจะเตือน) ปิดโปรแกรมหนัก ๆ แล้วลองใหม่ |
 | คำอังกฤษ/ศัพท์เทคนิคออกเสียงเพี้ยน | สร้างหลายรอบแล้วเลือกรอบที่ถอดกลับถูกที่สุด หรือสะกดเป็นไทยให้ออกเสียงตามที่ต้องการ |
 
 ## ข้อจำกัดที่ควรรู้ (พูดตรง ๆ)
@@ -190,24 +183,15 @@ powershell -ExecutionPolicy Bypass -File .\setup\SETUP_clip_maker.ps1
 - **ลิขสิทธิ์:** ตัวอย่างใช้ฉากหนัง/เพลงที่มีลิขสิทธิ์ ซึ่งผมใช้ทำเล่น/ไม่เชิงพาณิชย์ ถ้าโพสต์ลง IG/TikTok/YouTube ระบบอาจปิดเสียงหรือเอาคลิปลง รับผิดชอบเองนะครับ รีโปนี้ไม่ได้แจกคลิปหรือเพลงใด ๆ
 - ไม่มีความเกี่ยวข้องกับ Anthropic, HeyGen, ElevenLabs หรือ Pixabay เป็นแค่ชุดที่ผมรวมไว้ใช้เอง
 
-## ทางเลือก: VoiceStudio (แอปสร้างเสียงแบบครบชุด)
-
-[debpalash/VoiceStudio](https://github.com/debpalash/VoiceStudio) เป็นแอปโอเพนซอร์สสำหรับโคลนเสียง ออกแบบเสียง พากย์วิดีโอ ถอดเสียง สร้างหนังสือเสียง มี local API และ MCP ให้เอเจนต์เรียกใช้ ไลเซนส์ของแอปคือ AGPL-3.0 ส่วนโมเดลแต่ละตัวมีไลเซนส์แยก
-ที่ผมตรวจจากเอกสารของเขา (ไม่ได้ติดตั้งตัวแอปจริง จึงไม่มีตัวเลขพื้นที่รวมที่วัดเอง):
-- เอนจินหลักคือ **OmniVoice ตัวเดียวกับที่วัดข้างบน** (น้ำหนัก 2.4 GiB ในแคตตาล็อกของเขา) และมี VoxCPM2 (5.0 GiB) เป็นตัวเลือก
-- เอนจินอื่นในแคตตาล็อก เช่น CosyVoice 3 (9.8 GiB) MOSS-TTS-Nano (0.4 GiB) KittenTTS (อังกฤษอย่างเดียว) ผมไม่ได้ตรวจทีละตัวว่ารองรับไทยไหม
-- เอนจินที่ขัดกับแพ็กเกจหลักจะมี environment แยก ซึ่งเพิ่มพื้นที่หลาย GB (เขาเขียนไว้เอง) ส่วนเครื่องที่ไม่มีการ์ดจอจะใช้ PyTorch แบบ CPU ประมาณ 5 GB
-- ชุดนี้ **ไม่ต้องใช้ VoiceStudio** เพราะ `local_tts_lines.py` เรียกโมเดลตรง ๆ เบากว่า ถ้าอยากได้หน้าจอใช้งานแบบแอป หรืออยากต่อ API/MCP เข้ากับเครื่องมืออื่น ค่อยลองตัวนั้น
-
 ## ขอบคุณเครื่องมือเหล่านี้
 
-[HyperFrames](https://hyperframes.heygen.com) · [whisper.cpp](https://github.com/ggml-org/whisper.cpp) · [FFmpeg](https://ffmpeg.org) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [PyThaiNLP](https://github.com/PyThaiNLP/pythainlp) · [VoxCPM2](https://huggingface.co/openbmb/VoxCPM2) (OpenBMB, Apache-2.0) · [OmniVoice](https://huggingface.co/k2-fsa/OmniVoice) (k2-fsa, โค้ด Apache-2.0 / โมเดล CC-BY-NC) · [Pixabay](https://pixabay.com) · [ElevenLabs](https://elevenlabs.io) · ฟอนต์ Trirong/Kanit (SIL OFL)
+[HyperFrames](https://hyperframes.heygen.com) · [whisper.cpp](https://github.com/ggml-org/whisper.cpp) · [FFmpeg](https://ffmpeg.org) · [yt-dlp](https://github.com/yt-dlp/yt-dlp) · [PyThaiNLP](https://github.com/PyThaiNLP/pythainlp) · [VoiceStudio](https://github.com/debpalash/VoiceStudio) (debpalash, AGPL-3.0) · [Pixabay](https://pixabay.com) · [ElevenLabs](https://elevenlabs.io) · ฟอนต์ Trirong/Kanit (SIL OFL)
 
 ## English TL;DR
 
 A Windows setup kit + a Claude Code skill for producing fast-cut "documentary style" Thai explainer clips with HyperFrames:
 `setup/SETUP_clip_maker.ps1` installs the missing tools (ffmpeg, Node, Python, HyperFrames, whisper.cpp, Thai fonts) and the skill;
-you bring a free Pixabay key and a free ElevenLabs key (premade voices + `eleven_v3` only), restart Claude Code and paste a prompt from `examples/`.
+you bring a free Pixabay key and a free ElevenLabs key (premade voices + `eleven_v3` only; or choose VoiceStudio, a free local voice app installed from its official release after a SHA-256 check - untested by the author), restart Claude Code and paste a prompt from `examples/`.
 The skill documents the workflow, a frame-accurate motion library and the pitfalls we hit. Tested on one Windows 11 machine only.
 No media is included; movie clips/songs are your responsibility.
 
